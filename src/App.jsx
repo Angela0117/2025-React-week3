@@ -123,7 +123,7 @@ function App() {
   },[]);
 
   //產品modal-6：開啟modal的方法：透過Modal.getInstance(ref).show來開啟
-  const handleOpenproductModal = (Mode,product) => {
+  const handleOpenProductModal = (Mode,product) => {
     //打開modal前就更新(渲染)modal資料，才能接著判斷是新增或編輯產品
     setModalMode(Mode);
     //判斷為新增或編輯按鈕事件，此處用switch也可以用 if else
@@ -299,7 +299,7 @@ const handleDeleteProduct= async () => {
               <h2>產品列表</h2>
                {/*產品modal-7：將開啟modal加入點擊事件,因為是新增傳入新增變數
                  判斷當前動作是哪個modal-2：帶入參數 */}
-              <button onClick={()=>handleOpenproductModal("create")} type="button" className="btn btn-primary">建立新的產品</button>
+              <button onClick={()=>handleOpenProductModal("create")} type="button" className="btn btn-primary">建立新的產品</button>
              </div>
               <table className="table">
                 <thead>
