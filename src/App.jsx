@@ -98,6 +98,8 @@ function App() {
 
   //產品modal-2：透過 useRef 取得 DOM 元素，預設值為 null
   const productModalRef = useRef(null);
+
+  const delProductModalRef = useRef(null);
   //判斷當前動作是哪個modal-1：預設為 null，新增為 create，編輯為 edit
   const [modalMode, setModalMode] = useState(null);
   
@@ -110,6 +112,13 @@ function App() {
     });
     //產品modal-5：撰寫 Modal 開關方法,可透過 Modal.getInstance(ref) 取得實例
     //console.log(Modal.getInstance(productModalRef.current));
+
+    new Modal(delProductModalRef.current,{
+      //在modal外的空白處點擊不會關閉modal
+      backdrop: false
+    });
+    //產品
+
     
   },[]);
 
@@ -137,6 +146,19 @@ function App() {
   const modalInstance = Modal.getInstance(productModalRef.current);
   modalInstance.hide();
 }
+
+
+const handleOpenDelProductModal = (product) => {
+  setTempProduct(product);
+  const modalInstance = Modal.getInstance(delProductModalRef.current);
+  modalInstance.show();
+}
+
+const handleCloseDelProductModal = () => {
+  const modalInstance = Modal.getInstance(delProductModalRef.current);
+  modalInstance.hide();
+}
+
 
 //綁定產品 Modal 狀態-2：新增 tempProduct 狀態
 const [tempProduct, setTempProduct] = useState(defaultModalState);
@@ -191,6 +213,82 @@ const handleAddImage=()=>{
     })
 }
 
+//新增產品
+const createProduct = async()=>{
+  try {
+    //因為tempProduct外層有data(六角原始API資料格式)，所以要帶入data，並將以下屬性轉為數字型別和判斷是否啟用(上面tempProduct預設為字串)
+    const res = await axios.post(`${BASE_URL}/v2/api/${API_PATH}/admin/product`,
+      {data:{
+        ...tempProduct,
+        origin_price:Number(tempProduct.origin_price),
+        price:Number(tempProduct.price),
+        is_enabled: tempProduct.is_enabled ? 1 : 0
+      }
+      });
+    console.log(res)
+  } catch (error) {
+    alert("新增產品失敗")
+  }
+}
+//編輯產品
+const updateProduct = async()=>{
+  try {
+    //因為tempProduct外層有data(六角原始API資料格式)，所以要帶入data，並將以下屬性轉為數字型別和判斷是否啟用(上面tempProduct預設為字串)
+    const res = await axios.put(`${BASE_URL}/v2/api/${API_PATH}/admin/product/${tempProduct.id}`,
+      {data:{
+        ...tempProduct,
+        origin_price:Number(tempProduct.origin_price),
+        price:Number(tempProduct.price),
+        is_enabled: tempProduct.is_enabled ? 1 : 0
+      }
+      });
+    console.log(res)
+  } catch (error) {
+    alert("編輯產品失敗")
+  }
+}
+
+//刪除產品
+const deleteProduct = async()=>{
+  try {
+    //因為tempProduct外層有data(六角原始API資料格式)，所以要帶入data，並將以下屬性轉為數字型別和判斷是否啟用(上面tempProduct預設為字串)
+    const res = await axios.delete(`${BASE_URL}/v2/api/${API_PATH}/admin/product/${tempProduct.id}`);
+    console.log(res)
+  } catch (error) {
+    alert("刪除產品失敗")
+  }
+}
+
+//按確認時，呼叫新增產品API，並綁定在確認按鈕上
+const handleUpdateProduct= async () => {
+  //因為共用 Modal，所以要先判斷是新增或編輯，再去呼叫相對應的函式
+  const apiCall = modalMode ==="create" ? createProduct : updateProduct;
+  try{
+    await apiCall();
+    //新增成功後，重新渲染產品列表
+    getProducts();
+    //新增成功後，關閉modal
+    handleCloseproductModal();
+
+  }catch(error){
+    alert("更新產品失敗")
+  }
+}
+//按刪除時，呼叫刪除產品API，並綁定在刪除按鈕上
+const handleDeleteProduct= async () => {
+  try{
+    await deleteProduct();
+    //新增成功後，重新渲染產品列表
+    getProducts();
+    //新增成功後，關閉modal
+    handleCloseDelProductModal();
+
+  }catch(error){
+    alert("刪除產品失敗")
+  }
+}
+
+
   return (
     <>
       {isAuth ? (
@@ -219,14 +317,14 @@ const handleAddImage=()=>{
                       <th scope="row">{product.title}</th>
                       <td>{product.origin_price}</td>
                       <td>{product.price}</td>
-                      <td>{product.is_enabled}</td>
+                      <td>{product.is_enabled ? ( <span className="text-success">啟用</span>) : <span>未啟用</span>}</td>
                       <td>
                        
                       <div className="btn-group">
                       {/*產品modal-7：將開啟modal加入編輯按鈕的點擊事件,因為是編輯傳入編輯變數,
                       判斷當前動作是哪個modal-2：帶入參數 */}
-                        <button  onClick={()=>handleOpenproductModal("edit",product)} type="button" className="btn btn-outline-primary btn-sm">編輯</button>
-                        <button type="button" className="btn btn-outline-danger btn-sm">刪除</button>
+                        <button  onClick={()=>handleOpenProductModal("edit",product)} type="button" className="btn btn-outline-primary btn-sm">編輯</button>
+                        <button onClick={()=>handleOpenDelProductModal(product)} type="button" className="btn btn-outline-danger btn-sm">刪除</button>
                       </div>
                       </td>
                     </tr>
@@ -409,6 +507,7 @@ const handleAddImage=()=>{
                       <input
                        //綁定產品 Modal 狀態-4：在各個 input綁上value和監聽事件
                        value={tempProduct.origin_price}
+                       onChange={handleModalInputChange}
                         name="origin_price"
                         id="origin_price"
                         type="number"
@@ -489,13 +588,55 @@ const handleAddImage=()=>{
               <button onClick={handleCloseproductModal} type="button" className="btn btn-secondary">
                 取消
               </button>
-              <button type="button" className="btn btn-primary">
+              <button onClick={handleUpdateProduct} type="button" className="btn btn-primary">
                 確認
               </button>
             </div>
           </div>
         </div>
       </div>
+      {/*加入刪除產品 Modal*/}
+
+      <div
+      ref={delProductModalRef}
+        className="modal fade"
+        id="delProductModal"
+        tabIndex="-1"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      >
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h1 className="modal-title fs-5">刪除產品</h1>
+              <button
+               onClick={handleCloseDelProductModal}
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div className="modal-body">
+              你是否要刪除 
+              <span className="text-danger fw-bold">{tempProduct.title}</span>
+            </div>
+            <div className="modal-footer">
+              <button
+              onClick={handleCloseDelProductModal}
+                type="button"
+                className="btn btn-secondary"
+              >
+                取消
+              </button>
+              <button onClick={handleDeleteProduct} type="button" className="btn btn-danger">
+                刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    
     </>
   );
 }
